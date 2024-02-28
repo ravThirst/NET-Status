@@ -4,16 +4,9 @@
 // MVID: 2C21819A-A271-44DF-87FF-9A0712D306F0
 // Assembly location: C:\Users\User\Desktop\scripts\тест соединения\win-x64\NETstatus-test.dll
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 
 #nullable enable
-namespace NETstatus_test
+namespace NET_Status
 {
     public static class Info
     {
@@ -31,63 +24,65 @@ namespace NETstatus_test
         {
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
-            if (Info.blackList.Any<string>((Func<string, bool>)(x => value.ToLower().Contains(x))))
-                ;
+            if (blackList.Any(x => value.ToLower().Contains(x)))
+            {
+
+            }
             else
             {
-                await Info.semaphore.WaitAsync();
+                await semaphore.WaitAsync();
                 try
                 {
-                    if (key.ToLower().Contains("list") && !Info.list.Contains(value))
-                        Info.list.Add(value);
-                    else if (Info.variables.ContainsKey(key))
-                        Info.variables[key] = value;
+                    if (key.ToLower().Contains("list") && !list.Contains(value))
+                        list.Add(value);
+                    else if (variables.ContainsKey(key))
+                        variables[key] = value;
                     else
-                        Info.variables.Add(key, value);
+                        variables.Add(key, value);
                 }
                 catch
                 {
-                    Info.semaphore.Release();
+                    semaphore.Release();
                 }
                 finally
                 {
-                    Info.semaphore.Release();
+                    semaphore.Release();
                 }
             }
         }
 
-        static Info() => Info.StartLoggingAsync();
+        static Info() => StartLoggingAsync();
 
         public static async Task StartLoggingAsync()
         {
-            if (Info.logFilePath == null)
+            if (logFilePath == null)
                 throw new ArgumentNullException("logFilePath");
-            Info.cts = new CancellationTokenSource();
-            await Task.Run((Func<Task>)(async () =>
+            cts = new CancellationTokenSource();
+            await Task.Run(async () =>
             {
-                while (!Info.cts.Token.IsCancellationRequested)
+                while (!cts.Token.IsCancellationRequested)
                 {
                     await Task.Delay(1000);
-                    await Info.LogVariablesAsync(Info.logFilePath);
+                    await LogVariablesAsync(logFilePath);
                 }
-            }));
+            });
         }
 
         public static void StopLogging()
         {
-            Info.cts?.Cancel();
-            Info.cts?.Dispose();
+            cts?.Cancel();
+            cts?.Dispose();
         }
 
         public static async Task<Dictionary<string, string>> GetVariablesAsync()
         {
-            await Info.semaphore.WaitAsync();
+            await semaphore.WaitAsync();
             try
             {
                 int num;
                 try
                 {
-                    return new Dictionary<string, string>((IDictionary<string, string>)Info.variables);
+                    return new Dictionary<string, string>(variables);
                 }
                 catch
                 {
@@ -96,12 +91,12 @@ namespace NETstatus_test
                 if (num == 1)
                 {
                     await Task.Delay(500);
-                    return Info.variables;
+                    return variables;
                 }
             }
             finally
             {
-                Info.semaphore.Release();
+                semaphore.Release();
             }
             var variablesAsync = new Dictionary<string, string>();
             return variablesAsync;
@@ -109,25 +104,25 @@ namespace NETstatus_test
 
         private static async Task LogVariablesAsync(string logFilePath)
         {
-            await Info.semaphore.WaitAsync();
+            await semaphore.WaitAsync();
             try
             {
                 File.Delete(logFilePath);
                 using (StreamWriter writer = new StreamWriter(logFilePath, false))
                 {
-                    foreach (KeyValuePair<string, string> variable in Info.variables)
+                    foreach (KeyValuePair<string, string> variable in variables)
                         await writer.WriteLineAsync(variable.Key + ": " + variable.Value);
-                    foreach (string str in Info.list)
+                    foreach (string str in list)
                         await writer.WriteLineAsync(str ?? "");
                 }
             }
             catch
             {
-                Info.semaphore.Release();
+                semaphore.Release();
             }
             finally
             {
-                Info.semaphore.Release();
+                semaphore.Release();
             }
         }
     }

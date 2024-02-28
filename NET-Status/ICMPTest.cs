@@ -1,19 +1,8 @@
-﻿// Decompiled with JetBrains decompiler
-// Type: NETstatus_test.ICMPTest
-// Assembly: NETstatus-test, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
-// MVID: 2C21819A-A271-44DF-87FF-9A0712D306F0
-// Assembly location: C:\Users\User\Desktop\scripts\тест соединения\win-x64\NETstatus-test.dll
-
-using System;
-using System.Collections.Generic;
-using System.Net.NetworkInformation;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Net.NetworkInformation;
 
 
 #nullable enable
-namespace NETstatus_test
+namespace NET_Status
 {
     internal class ICMPTest
     {
@@ -22,53 +11,53 @@ namespace NETstatus_test
 
         public static async Task Start(string targetHost)
         {
-            ICMPTest.TargetHosts = new List<string>()
+            TargetHosts = new List<string>()
       {
         "185.216.16.162",
         "d0bc0bb8f727.sn.mynetname.net"
       };
-            ICMPTest.TargetHosts.Add(targetHost);
+            TargetHosts.Add(targetHost);
             using (CancellationTokenSource cats = new CancellationTokenSource())
             {
-                ICMPTest.cts = cats;
-                Console.CancelKeyPress += (ConsoleCancelEventHandler)((s, e) =>
+                cts = cats;
+                Console.CancelKeyPress += (s, e) =>
                 {
                     e.Cancel = true;
-                    ICMPTest.cts.Cancel();
-                });
-                await ICMPTest.RunICMPTestsAsync(ICMPTest.cts.Token);
+                    cts.Cancel();
+                };
+                await RunICMPTestsAsync(cts.Token);
             }
         }
 
         public static async Task Start(List<string> targetHosts)
         {
-            ICMPTest.TargetHosts = new List<string>()
+            TargetHosts = new List<string>()
       {
         "185.216.16.162",
         "d0bc0bb8f727.sn.mynetname.net"
       };
-            ICMPTest.TargetHosts.AddRange((IEnumerable<string>)targetHosts);
+            TargetHosts.AddRange(targetHosts);
             using (CancellationTokenSource cats = new CancellationTokenSource())
             {
-                ICMPTest.cts = cats;
-                Console.CancelKeyPress += (ConsoleCancelEventHandler)((s, e) =>
+                cts = cats;
+                Console.CancelKeyPress += (s, e) =>
                 {
                     e.Cancel = true;
-                    ICMPTest.cts.Cancel();
-                });
-                await ICMPTest.RunICMPTestsAsync(ICMPTest.cts.Token);
+                    cts.Cancel();
+                };
+                await RunICMPTestsAsync(cts.Token);
             }
         }
 
         private static async Task RunICMPTestsAsync(CancellationToken cancellationToken)
         {
             List<Task> taskList = new List<Task>();
-            foreach (string targetHost in ICMPTest.TargetHosts)
+            foreach (string targetHost in TargetHosts)
             {
-                Task task = ICMPTest.TestICMPConnectionAsync(targetHost, cancellationToken);
+                Task task = TestICMPConnectionAsync(targetHost, cancellationToken);
                 taskList.Add(task);
             }
-            await Task.WhenAll((IEnumerable<Task>)taskList);
+            await Task.WhenAll(taskList);
         }
 
         private static async Task TestICMPConnectionAsync(
@@ -95,39 +84,21 @@ namespace NETstatus_test
                         }
                         else
                             ++consecutiveFailures;
-                        double lossPercentage = 100.0 - (double)successCount * 100.0 / (double)totalPings;
+                        double lossPercentage = 100.0 - successCount * 100.0 / totalPings;
                         await Info.SetVariableAsync("Host " + host + " Success", successCount.ToString());
                         await Info.SetVariableAsync("Host " + host + " Total", totalPings.ToString());
-                        string key = "Host " + host + " LossPercentage";
-                        result = $"lossPercentage"
-                        interpolatedStringHandler = new DefaultInterpolatedStringHandler(1, 1);
-                        interpolatedStringHandler.AppendFormatted<double>(lossPercentage);
-                        interpolatedStringHandler.AppendLiteral("%");
-                        string stringAndClear = interpolatedStringHandler.ToStringAndClear();
-                        await Info.SetVariableAsync(key, stringAndClear);
+                        await Info.SetVariableAsync("Host " + host + " Loss percentage", $"{Math.Round(lossPercentage, 2)} %");
                         if (consecutiveFailures >= 2)
                         {
-                            interpolatedStringHandler = new DefaultInterpolatedStringHandler(34, 3);
-                            interpolatedStringHandler.AppendLiteral("Host ");
-                            interpolatedStringHandler.AppendFormatted(host);
-                            interpolatedStringHandler.AppendLiteral(" DateTime ");
-                            interpolatedStringHandler.AppendFormatted<DateTime>(DateTime.Now);
-                            interpolatedStringHandler.AppendLiteral(" ConnectivityIssue ");
-                            interpolatedStringHandler.AppendFormatted<int>(errorCount++);
-                            await Info.SetVariableAsync("list", interpolatedStringHandler.ToStringAndClear());
+                            result = $"Host {host}, DateTime {DateTime.Now}, ConnectivityIssue {errorCount++}";
+                            await Info.SetVariableAsync("list", result);
                         }
                         await Task.Delay(TimeSpan.FromMilliseconds(400.0), cancellationToken);
                     }
                     catch (PingException ex)
                     {
-                        interpolatedStringHandler = new DefaultInterpolatedStringHandler(22, 3);
-                        interpolatedStringHandler.AppendLiteral("Host ");
-                        interpolatedStringHandler.AppendFormatted(host);
-                        interpolatedStringHandler.AppendLiteral(" DateTime ");
-                        interpolatedStringHandler.AppendFormatted<DateTime>(DateTime.Now);
-                        interpolatedStringHandler.AppendLiteral(" Error ");
-                        interpolatedStringHandler.AppendFormatted(ex.Message);
-                        await Info.SetVariableAsync("list", interpolatedStringHandler.ToStringAndClear());
+                        result = $"Host {host}, DateTime {DateTime.Now}, Error {ex.Message}";
+                        await Info.SetVariableAsync("list", result);
                         ++consecutiveFailures;
                         await Task.Delay(TimeSpan.FromMilliseconds(400.0), cancellationToken);
                     }
@@ -137,14 +108,8 @@ namespace NETstatus_test
                     }
                     catch (Exception ex)
                     {
-                        interpolatedStringHandler = new DefaultInterpolatedStringHandler(22, 3);
-                        interpolatedStringHandler.AppendLiteral("Host ");
-                        interpolatedStringHandler.AppendFormatted(host);
-                        interpolatedStringHandler.AppendLiteral(" DateTime ");
-                        interpolatedStringHandler.AppendFormatted<DateTime>(DateTime.Now);
-                        interpolatedStringHandler.AppendLiteral(" Error ");
-                        interpolatedStringHandler.AppendFormatted(ex.Message);
-                        await Info.SetVariableAsync("list", interpolatedStringHandler.ToStringAndClear());
+                        result = $"Host {host}, DateTime {DateTime.Now}, Error {ex.Message}";
+                        await Info.SetVariableAsync("list", result);
                         ++consecutiveFailures;
                         await Task.Delay(TimeSpan.FromMilliseconds(400.0), cancellationToken);
                     }

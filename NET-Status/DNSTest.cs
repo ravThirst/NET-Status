@@ -1,15 +1,8 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Net;
 
 
 #nullable enable
-namespace NETstatus_test
+namespace NET_Status
 {
     public static class DNSTest
     {
@@ -23,24 +16,24 @@ namespace NETstatus_test
 
         public static async Task StartTestAsync(string hostName = "yandex.ru")
         {
-            DNSTest.cancellationTokenSource = new CancellationTokenSource();
-            DNSTest.hostToIPDictionary = new Dictionary<string, List<IPAddress>>();
-            DNSTest.popularWebsites.Add(hostName);
+            cancellationTokenSource = new CancellationTokenSource();
+            hostToIPDictionary = new Dictionary<string, List<IPAddress>>();
+            popularWebsites.Add(hostName);
             try
             {
-                while (!DNSTest.cancellationTokenSource.Token.IsCancellationRequested)
+                while (!cancellationTokenSource.Token.IsCancellationRequested)
                 {
-                    foreach (string website in DNSTest.popularWebsites)
+                    foreach (string website in popularWebsites)
                     {
                         try
                         {
-                            List<IPAddress> newIPAddresses = await DNSTest.ResolveDNSAsync(website);
+                            List<IPAddress> newIPAddresses = await ResolveDNSAsync(website);
                             List<IPAddress> old;
-                            if (DNSTest.hostToIPDictionary.TryGetValue(website, out old))
+                            if (hostToIPDictionary.TryGetValue(website, out old))
                             {
-                                List<string> addedItems = DNSTest.GetAddedItems(old, newIPAddresses);
-                                List<string> removedItems = DNSTest.GetRemovedItems(old, newIPAddresses);
-                                if (DNSTest.EqualLists(old, newIPAddresses))
+                                List<string> addedItems = GetAddedItems(old, newIPAddresses);
+                                List<string> removedItems = GetRemovedItems(old, newIPAddresses);
+                                if (EqualLists(old, newIPAddresses))
                                 {
                                     var result = $"Host: {website}, New IPs: {string.Join(", ", addedItems.Select(x => x.ToString()))}" +
                                         $", Old IPs: {string.Join(", ", removedItems.Select(x => x.ToString()))}, Time: {DateTime.Now}";
@@ -53,8 +46,8 @@ namespace NETstatus_test
                                         $", Time: {DateTime.Now}";
                                 await Info.SetVariableAsync("list", result);
                             }
-                            DNSTest.hostToIPDictionary[website] = newIPAddresses;
-                            newIPAddresses = (List<IPAddress>)null;
+                            hostToIPDictionary[website] = newIPAddresses;
+                            newIPAddresses = null;
                         }
                         catch (Exception ex)
                         {
@@ -63,7 +56,7 @@ namespace NETstatus_test
                             await Info.SetVariableAsync("list", result);
                         }
                     }
-                    await Task.Delay(TimeSpan.FromSeconds(1.0), DNSTest.cancellationTokenSource.Token);
+                    await Task.Delay(TimeSpan.FromSeconds(1.0), cancellationTokenSource.Token);
                 }
             }
             catch (TaskCanceledException ex)
@@ -71,29 +64,29 @@ namespace NETstatus_test
             }
         }
 
-        public static void StopTest() => DNSTest.cancellationTokenSource?.Cancel();
+        public static void StopTest() => cancellationTokenSource?.Cancel();
 
         private static bool EqualLists(List<IPAddress> old, List<IPAddress> _new)
         {
-            List<string> addedItems = DNSTest.GetAddedItems(old, _new);
-            List<string> removedItems = DNSTest.GetRemovedItems(old, _new);
+            List<string> addedItems = GetAddedItems(old, _new);
+            List<string> removedItems = GetRemovedItems(old, _new);
             return addedItems.Count > 0 || removedItems.Count > 0;
         }
 
         private static List<string> GetAddedItems(List<IPAddress> old, List<IPAddress> _new)
         {
-            List<string> list = old.Select<IPAddress, string>((Func<IPAddress, string>)(x => x.ToString())).ToList<string>();
-            return _new.Select<IPAddress, string>((Func<IPAddress, string>)(x => x.ToString())).ToList<string>().Except<string>((IEnumerable<string>)list).ToList<string>();
+            List<string> list = old.Select(x => x.ToString()).ToList();
+            return _new.Select(x => x.ToString()).ToList().Except(list).ToList();
         }
 
-        private static List<string> GetRemovedItems(List<IPAddress> old, List<IPAddress> _new) => old.Select<IPAddress, string>((Func<IPAddress, string>)(x => x.ToString())).ToList<string>().Except<string>((IEnumerable<string>)_new.Select<IPAddress, string>((Func<IPAddress, string>)(x => x.ToString())).ToList<string>()).ToList<string>();
+        private static List<string> GetRemovedItems(List<IPAddress> old, List<IPAddress> _new) => old.Select(x => x.ToString()).ToList().Except(_new.Select(x => x.ToString()).ToList()).ToList();
 
         private static void AddValue(string key, IPAddress iPAddress)
         {
-            if (DNSTest.hostToIPDictionary.ContainsKey(key))
-                DNSTest.hostToIPDictionary[key].Add(iPAddress);
+            if (hostToIPDictionary.ContainsKey(key))
+                hostToIPDictionary[key].Add(iPAddress);
             else
-                DNSTest.hostToIPDictionary.Add(key, new List<IPAddress>()
+                hostToIPDictionary.Add(key, new List<IPAddress>()
         {
           iPAddress
         });
@@ -101,11 +94,11 @@ namespace NETstatus_test
 
         private static void RemoveValue(string key, IPAddress iPAddress)
         {
-            if (!DNSTest.hostToIPDictionary.ContainsKey(key) || !DNSTest.hostToIPDictionary[key].Any<IPAddress>((Func<IPAddress, bool>)(x => x.ToString() == iPAddress.ToString())))
+            if (!hostToIPDictionary.ContainsKey(key) || !hostToIPDictionary[key].Any(x => x.ToString() == iPAddress.ToString()))
                 return;
-            DNSTest.hostToIPDictionary[key].Add(iPAddress);
+            hostToIPDictionary[key].Add(iPAddress);
         }
 
-        private static async Task<List<IPAddress>> ResolveDNSAsync(string hostname) => ((IEnumerable<IPAddress>)(await Dns.GetHostEntryAsync(hostname)).AddressList).ToList<IPAddress>();
+        private static async Task<List<IPAddress>> ResolveDNSAsync(string hostname) => (await Dns.GetHostEntryAsync(hostname)).AddressList.ToList();
     }
 }
