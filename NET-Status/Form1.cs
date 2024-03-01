@@ -19,6 +19,7 @@ namespace NET_Status
             ICMPTest.Start("google.com");
             IPConfigParser.StartParsingAsync();
             DNSTest.StartTestAsync("d0bc0bb8f727.sn.mynetname.net");
+            DeviceManagerParser.StartParsingAsync();
             while (true)
                 await Task.Delay(1000);
         }

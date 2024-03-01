@@ -8,7 +8,7 @@ namespace NET_Status
     {
         private static List<string> TargetHosts = new List<string>();
         public static CancellationTokenSource cts = new CancellationTokenSource();
-
+        public int TargetHostsCounnt { get => TargetHosts.Count(); }
         public static async Task Start(string targetHost)
         {
             TargetHosts = new List<string>()
@@ -75,7 +75,7 @@ namespace NET_Status
                 {
                     try
                     {
-                        PingReply pingReply = await ping.SendPingAsync(host);
+                        PingReply pingReply = await ping.SendPingAsync(host, 1000);
                         ++totalPings;
                         if (pingReply.Status == IPStatus.Success)
                         {
